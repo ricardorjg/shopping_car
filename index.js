@@ -1,7 +1,9 @@
+require('dotenv').config()
+
 const express = require("express")
 const bodyParser = require("body-parser")
 const cors = require("cors")
-const { uuid } = require('uuidv4');
+const Item = require("./models/Item")
 
 const app = express()
 
@@ -9,23 +11,21 @@ app.use(cors())
 app.use(bodyParser.json())
 app.use(express.static('build'))
 
-let items = [
-
-]
-
 app.get('/api/items', (req, res) => {
-    return res.json(items)
+    Item.find({}).then(items => res.json(items))
 })
 
-app.get('/api/items/:id', (req, res) => {
-    const id = req.params.id
-    const item = items.find(i => i.id === id)
+app.get('/api/items/:id', (req, res, next) => {
+    Item
+        .findOne({ id: req.params.id })
+        .then(item => {
+            if (!item) {
+                throw new Error("Item not found")
+            }
 
-    if (!item) {
-        return res.status(404).end()
-    }
-
-    return res.json(item)
+            res.json(item)
+        })
+        .catch(error => next(error))
 })
 
 app.post('/api/items', (req, res) => {
@@ -38,21 +38,19 @@ app.post('/api/items', (req, res) => {
         })
     }
 
-    const item = {
-        id: uuid(),
+    const item = new Item({
         reference: body.reference,
         description: body.description,
         vr_unit: body.vr_unit,
         discount: body.discount,
         currency: body.currency
-    }
+    })
 
-    items = items.concat(item)
-
-    res.json(item)
+    item.save().then(savedItem => res.json(savedItem))
 })
 
 app.patch('/api/items/:id', (req, res) => {
+
     const id = req.params.id
     const body = req.body
 
@@ -62,27 +60,39 @@ app.patch('/api/items/:id', (req, res) => {
         })
     }
 
-    const item = items.find(i => i.id === id)
-
-    if (!item) {
-        return res.status(404).json({
-            error: 'unable to find matching id'
-        })
-    }
-
-    const updatedItem = {...item, ...body}
-    items = items.map(i => i.id !== id ? i : updatedItem)
-
-    return res.json(updatedItem)
+    Item
+        .findOneAndUpdate(
+            { id: req.params.id }, 
+            { $set: body },
+            { new: true }
+        )
+        .then(updatedItem => res.json(updatedItem))
 })
 
 app.delete('/api/items/:id', (req, res) => {
-    const id = req.params.id
-    items = items.filter(i => i.id !== id)
-    return res.status(204).end()
+    Item
+        .deleteOne({ id: req.params.id })
+        .then(() => res.status(204).end())
 })
 
-const PORT = process.env.PORT || 3001
+const unknownEndPoint = (req, res) => {
+    res.status(404).json({
+        error: 'unknown endpoint'
+    })
+}
+
+app.use(unknownEndPoint)
+
+const errorHandler = (error, req, res, next) => {
+    return res.status(204).send({
+        error: error.message
+    })
+}
+
+app.use(errorHandler)
+
+const PORT = process.env.PORT
+
 app.listen(PORT, () => {
     console.log(`server running at port ${PORT}`)
 })
