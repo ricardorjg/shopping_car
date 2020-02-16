@@ -10,9 +10,9 @@ mongoose
 
 const itemSchema = new mongoose.Schema({
     id: { type:String, default:uuid },
-    reference: String,
+    reference: { type: String, required: true },
     description: String,
-    currency: String,
+    currency: { type: String, required: true },
     vr_unit: Number,
     discount: Number
 })

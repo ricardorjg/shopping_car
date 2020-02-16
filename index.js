@@ -28,7 +28,7 @@ app.get('/api/items/:id', (req, res, next) => {
         .catch(error => next(error))
 })
 
-app.post('/api/items', (req, res) => {
+app.post('/api/items', (req, res, next) => {
 
     const body = req.body
 
@@ -46,7 +46,10 @@ app.post('/api/items', (req, res) => {
         currency: body.currency
     })
 
-    item.save().then(savedItem => res.json(savedItem))
+    item
+        .save()
+        .then(savedItem => res.json(savedItem))
+        .catch(error => next(error))
 })
 
 app.patch('/api/items/:id', (req, res) => {
@@ -84,9 +87,20 @@ const unknownEndPoint = (req, res) => {
 app.use(unknownEndPoint)
 
 const errorHandler = (error, req, res, next) => {
-    return res.status(204).send({
-        error: error.message
-    })
+
+    if (error.name === "Error") {
+        return res.status(404).send({
+            error: error.message
+        })
+    }
+
+    if (error.name === "ValidationError") {
+        return res.status(404).send({
+            error: error.message
+        })
+    }
+
+    next(error)
 }
 
 app.use(errorHandler)
