@@ -1,5 +1,6 @@
 const itemsRouter = require('express').Router()
 const Item = require('../models/Item')
+const User = require('../models/User')
 
 itemsRouter.get('/', async (req, res) => {
     const items = await Item.find({})
@@ -28,16 +29,21 @@ itemsRouter.post('/', async (req, res, next) => {
         })
     }
 
+    const user = await User.findOne({ id: body.userId })
+
     const item = new Item({
         reference: body.reference,
         description: body.description,
         vr_unit: body.vr_unit,
         discount: body.discount,
-        currency: body.currency
+        currency: body.currency,
+        user: user.id
     })
 
     try {
         const savedItem = await item.save()
+        user.items = user.items.concat(savedItem.id)
+        await user.save()
         res.json(savedItem)
     } catch (err) {
         next(err)

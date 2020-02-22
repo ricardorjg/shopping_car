@@ -6,6 +6,7 @@ const mongoose = require('mongoose')
 const { unknownEndPoint, errorHandler } = require('./utils/middleware')
 
 const itemRouter = require('./controllers/Item')
+const userRouter = require('./controllers/User')
 
 const app = express()
 
@@ -20,6 +21,7 @@ app.use(cors())
 app.use(express.static('build'))
 app.use(bodyParser.json())
 
+app.use('/api/users', userRouter)
 app.use('/api/items', itemRouter)
 
 app.use(unknownEndPoint)

@@ -14,8 +14,12 @@ const itemSchema = new mongoose.Schema({
     description: String,
     currency: { type: String, required: true },
     vr_unit: Number,
-    discount: Number
-})
+    discount: Number,
+    user: {
+        type: String,
+        ref: 'User'
+    },
+}, { toJSON: { virtuals: true } })
 
 itemSchema.set('toJSON', {
     transform: (document, returnedObject) => {
