@@ -17,6 +17,10 @@ const errorHandler = (error, req, res, next) => {
             return res.status(400).send({
                 message
             })
+        case 'JsonWebTokenError':
+            return res.status(401).json({
+                error: 'invalid token'
+            })
         default:
             next(error)
     }

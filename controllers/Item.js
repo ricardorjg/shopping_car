@@ -1,6 +1,18 @@
+require('dotenv').config()
+
+const jwt = require('jsonwebtoken')
 const itemsRouter = require('express').Router()
 const Item = require('../models/Item')
 const User = require('../models/User')
+
+const getTokenFrom = req => {
+    const authorization = req.get('authorization')
+    if (authorization && authorization.toLowerCase().startsWith('bearer ')) {
+        return authorization.substring(7)
+    }
+
+    return null
+}
 
 itemsRouter.get('/', async (req, res) => {
     const items = await Item.find({})
@@ -29,18 +41,27 @@ itemsRouter.post('/', async (req, res, next) => {
         })
     }
 
-    const user = await User.findOne({ id: body.userId })
-
-    const item = new Item({
-        reference: body.reference,
-        description: body.description,
-        vr_unit: body.vr_unit,
-        discount: body.discount,
-        currency: body.currency,
-        user: user.id
-    })
+    const token = getTokenFrom(req)
 
     try {
+        const decodedToken = jwt.verify(token, process.env.SECRET)
+        if (!token || !decodedToken.id) {
+            return res.status(401).json({
+                error: 'token missing or invalid'
+            })
+        }
+
+        const user = await User.findOne({ id: body.userId })
+
+        const item = new Item({
+            reference: body.reference,
+            description: body.description,
+            vr_unit: body.vr_unit,
+            discount: body.discount,
+            currency: body.currency,
+            user: user.id
+        })
+
         const savedItem = await item.save()
         user.items = user.items.concat(savedItem.id)
         await user.save()
